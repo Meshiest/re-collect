@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import pygame, time
 
 import config
@@ -36,5 +38,5 @@ while running:
 
   # tickGame(delta, keys)
   # drawGame()
-  
+
   pygame.display.update()

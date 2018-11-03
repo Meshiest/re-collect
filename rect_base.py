@@ -20,7 +20,7 @@ def tick(self, delta):
   if self.theta < -math.pi and self.dir == 1:
       self.dir = -1
   elif self.theta > 0 and self.dir == -1:
-  self.dir = 1
+    self.dir = 1
 
 def draw(self, scr, img):
   offX = math.cos(self.theta) * 20
