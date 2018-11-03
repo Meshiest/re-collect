@@ -3,17 +3,25 @@ import pygame
 from rect_base import RectBase
 
 class Player(RectBase):
-  def __init__(self, **kwargs):
-    super.__init__(kwargs)
+  def __init__(self, *args):
+    super().__init__(*args)
     self.items = []
     self.action = None
     self.powerup_start = None
 
-  def tick(self, **kwargs):
-    super.tick(kwargs)
+  def tick(self, deltax, deltay):
+    self.x += deltax
+    self.y += deltay
 
-  def draw(self, **kwargs):
-    super.draw(kwargs)
+  def draw(self, scr, *args):
+    super().draw(scr, *args)
+    pygame.draw.rect(scr, self.color, (self.x, self.y, self.w, self.h))
+
+  def collide(self, other_rect):
+   rect = pygame.Rect(self.x, self.y, 50, 10)
+   other = pygame.Rect(other_rect.x, other_rect.y, 200, 20)
+   if rect.colliderect(other):
+     return True
 
   def interact(self, interactable):
     pass
