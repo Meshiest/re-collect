@@ -1,0 +1,53 @@
+Level 0, 0
+Introduction
+Show the player to the core mechanics
+
+Legend:
+
+R red wall [red wall sprite]
+r red button [red button sprite]
+B blue wall [blue wall sprite]
+b blue button [blue button sprite]
+G green wall [green wall sprite]
+g green button [green button sprite]
+- horizontal fence [horizontal fence sprite]
+| vertical fence [vertical fence sprite]
+@ player spawn
+$ loot [predetermined loot sprite]
+# portal-able surface [concrete sprite]
+. air
+X clear portal wall [potentially have a sprite]
+1 jump shroom
+2 dash shroom
+3 flip shroom
+
+>a teleport east 1 level to portal a
+
+b< teleport west 1 level to portal b
+
+c
+^ teleport north 1 level to portal c
+
+v teleport south 1 level to portal d
+d
+
+Everything else is wall [dirt sprite]
+
+Ignore all text before /^LEVEL:$/
+
+LEVEL:
+...........................R...
+...........................R...
+...@..................r....R...
+                            ...
+                            ...
+                            ...
+                            ...
+                            ...
+                            ...
+                     .. .............
+                    #.b .............
+                     ................
+                     ................B....X..>a
+                    #................B....X..>a
+                     ................B....X..>a
