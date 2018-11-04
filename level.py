@@ -7,18 +7,25 @@ STEP = 0b00001000 # Something you can trigger by stepping on
 POKE = 0b00010000 # Something you can trigger by poking
 GRID = 0b00100000 # Something you can shoot portals on
 
+# A cell in the level
 class Tile:
   MASK = 0
   SYMBOL = ' '
 
+  def __str__(self):
+    return self.SYMBOL
+
+# Walls players cannot walk into
 class WallTile(Tile):
   MASK = WALL
   SYMBOL = ' '
 
+# Nothing tile, players can walk through this
 class AirTile(Tile):
   MASK = AIR
   SYMBOL = '.'
 
+# Location where player will spawn
 class SpawnTile(Tile):
   MASK = AIR
   SYMBOL = '@'
@@ -26,6 +33,7 @@ class SpawnTile(Tile):
   def __init__(self, location):
     self.location = location
 
+# Color enum
 class WallColor(Enum):
   RED = 0b001
   BLUE = 0b010
@@ -34,6 +42,7 @@ class WallColor(Enum):
   CYAN = GREEN | BLUE
   YELLOW = RED | GREEN
 
+# Togglable wall
 class ColorWallTile(Tile):
   MASK = WALL
   SYMBOL = 'W'
@@ -42,6 +51,17 @@ class ColorWallTile(Tile):
     if not isinstance(color, WallColor): raise Exception('Invalid Wall Color')
     self.color = color
 
+  def __str__(self):
+    return {
+      (WallColor.RED): 'R',
+      (WallColor.BLUE): 'B',
+      (WallColor.GREEN): 'G',
+      (WallColor.PURPLE): 'P',
+      (WallColor.CYAN): 'C',
+      (WallColor.YELLOW): 'Y',
+    }[self.color]
+
+# Togglable button
 class ColorButtonTile(Tile):
   SYMBOL = 'w'
   MASK = AIR | STEP | POKE
@@ -50,42 +70,72 @@ class ColorButtonTile(Tile):
     if not isinstance(color, WallColor): raise Exception('Invalid Button Color')
     self.color = color
 
+  def __str__(self):
+    return {
+      (WallColor.RED): 'r',
+      (WallColor.BLUE): 'b',
+      (WallColor.GREEN): 'g',
+      (WallColor.PURPLE): 'p',
+      (WallColor.CYAN): 'c',
+      (WallColor.YELLOW): 'y',
+    }[self.color]
+
+# Win objective item
 class LootTile(Tile):
-  MASK = AIR | STEP | POKE
+  MASK = AIR | STEP | ITEM | POKE
   SYMBOL = '$'
 
+# Place where players teleport to from other rooms
 class TeleExitTile(Tile):
   MASK = AIR
   SYMBOL = '>'
 
-  def __init__(self, label):
+  def __init__(self, label, direction):
     self.label = label
+    self.direction = direction
 
+  def __str__(self):
+    return {
+      (1, 0): '>',
+      (-1, 0): '<',
+      (0, -1): '^',
+      (0, 1): 'v',
+    }[self.direction] or '?'
+
+# Walk into this to teleport to a different room
 class TeleEntranceTile(Tile):
   MASK = AIR | STEP
   SYMBOL = '*'
 
-  def __init__(self, label, destination):
+  def __init__(self, label, direction):
     self.label = label
-    self.destination = destination
+    self.direction = direction
 
+  def __str__(self):
+    return self.label
+
+# Clears the player's portals
 class PortalClearTile(Tile):
   SYMBOL = 'X'
   MASK = AIR | STEP
 
+# A spot where players can shoot portals
 class GridTile(Tile):
   SYMBOL = '#'
   MASK = WALL | GRID
 
+# A fence
 class FenceTile(Tile):
   SYMBOL = '-'
   MASK = WALL | AIR
 
+# Shroom ability enum
 class ShroomType(Enum):
   JUMP = 0b001
   BLINK = 0b010
   GRAVITY = 0b100
 
+# Shroom item
 class ShroomTile(Tile):
   SYMBOL = '1'
   MASK = AIR | ITEM | POKE | STEP
@@ -94,6 +144,10 @@ class ShroomTile(Tile):
     if not isinstance(type, ShroomType): raise Exception('Invalid Shroom Type')
     self.type = type
 
+  def __str__(self):
+    return str(self.type.value)
+
+# Creates a level map from a file
 def parse(file):
   f = open(file, 'r')
   body = f.read()
@@ -120,14 +174,18 @@ def parse(file):
         }[char]
 
         label = grid[y+off_y][x+off_x]
-        if label not in teles:
-          teles[label] = []
+        key = (label, (off_x, off_y))
+        if key not in teles:
+          teles[key] = []
 
-        level_map[(x, y)] = TeleExitTile(label)
+        # Create tele tiles
+        level_map[(x, y)] = TeleExitTile(label, (off_x, off_y))
         level_map[(x+off_x, y+off_y)] = TeleEntranceTile(label, (off_x, off_y))
 
-        teles[label].append((x, y))
+        # Create links for room crawling
+        teles[key].append((x, y))
 
+  # Fill in other tiles
   for y, row in enumerate(grid):
     for x, char in enumerate(row):
       if (x, y) not in level_map:
@@ -192,19 +250,68 @@ def parse(file):
           '3': ShroomType.GRAVITY,
         }[char])
 
-  # print('\n'.join([
-  #   ''.join([
-  #     level_map[(x, y)].SYMBOL for x in range(width)
-  #   ]) for y in range(height)
-  # ]))
+  return (level_map, (width, height), teles, spawn)
 
-  return level_map
-
+# Parses a level from coords
 def read_level(x, y):
-  return parse('levels/level_%d_%d' % (x, y))
+  return parse('levels/level_%d_%d' % (y, x))
+
+# Creates a level object from coords
+def get_level(x, y):
+  (grid, (width, height), teles, spawn) = read_level(x, y)
+  return Level((x, y), grid, (width, height), teles, spawn)
+
 
 class Level:
-  def __init__(self, grid):
-    pass
+  def __init__(self, loc, grid, size, teles, spawn):
+    self.loc = loc
+    self.spawn = spawn
+    self.width, self.height = size
+    self.teles = teles
+    self.grid = grid
 
-# print(parse('/home/cake/Github/meshiest/recollect/levels/level_0_0'))
+  # Determines the adjacent rooms based on teles inside the room
+  def get_neighbors(self):
+    x, y = self.loc
+    return list(set([(x + off_x, y + off_y) for label, (off_x, off_y) in self.teles]))
+
+  # Prints out the room in ascii notation
+  def __str__(self):
+    return '\n'.join([
+      ''.join([
+        str(self.grid[(x, y)]) for x in range(self.width)
+      ]) for y in range(self.height)
+    ])
+
+  def __repr__(self):
+    return '<Room @ (%d, %d)>' % self.loc
+
+# Finds all the linked rooms
+def crawl_rooms(debug=False):
+  levels = {}
+  undiscovered, discovered = [(0, 0)], []
+
+  # Pop undiscovered rooms from a queue to conduct a breadth first scan
+  while len(undiscovered):
+    (x, y), undiscovered = undiscovered[0], undiscovered[1:]
+    discovered.append((x, y))
+    level = get_level(x, y)
+
+    if debug:
+      print('Exploring Room %s,%s' % (x, y))
+      print(str(level))
+
+    links = level.get_neighbors()
+    levels[(x, y)] = (level, links)
+
+    # Add explored rooms to our to-explore queue
+    for (x, y) in links:
+      if (x, y) not in discovered and (x, y) not in undiscovered:
+        undiscovered.append((x, y))
+
+  if debug:
+    print(levels)
+
+  return levels
+
+# crawl_rooms(debug=True)
