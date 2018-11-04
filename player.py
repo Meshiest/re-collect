@@ -8,21 +8,37 @@ class Player(RectBase):
     self.items = []
     self.action = None
     self.powerup_start = None
+    self.v = 5
+    self.m = 2
 
-  def tick(self, deltax, deltay):
+  def tick(self, delta, collidables, scr):
+    for collidable in collidables:
+      if self.y > (collidable.y + collidable.h):
+        pass
+      elif self.collide((self.vx * delta), (self.vy * delta), collidable):
+        return
+    if self.boundaries(self.x + (self.vx * delta), self.y + (self.vx * delta), scr):
+      super().tick(delta)    
+
+  def move(self, deltax, deltay):
     self.x += deltax
     self.y += deltay
 
   def draw(self, scr, *args):
-    super().draw(scr, *args)
     pygame.draw.rect(scr, self.color, (self.x, self.y, self.w, self.h))
 
-  def collide(self, other_rect):
-   rect = pygame.Rect(self.x, self.y, 50, 10)
-   other = pygame.Rect(other_rect.x, other_rect.y, 200, 20)
-   if rect.colliderect(other):
+  def collide(self, deltax, deltay, other_rect):
+   player = pygame.Rect(self.x+deltax, self.y+deltay, 50, 10)
+   other = pygame.Rect(other_rect.x, other_rect.y, other_rect.w, other_rect.h)
+   if player.colliderect(other):
      return True
+   return False
 
+  def boundaries(self, x, y, scr):
+    rect = pygame.Rect(x, y, 50, 10)
+    screen = scr.get_rect()
+    return screen.contains(rect)
+ 
   def interact(self, interactable):
     pass
 
@@ -32,8 +48,8 @@ class Player(RectBase):
   def portal(self):
     pass
 
-  def jump(self):
-    pass
+  def jump(self, delta):
+    pass    
 
   def dash(self):
     pass
