@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import pygame, time
+import pygame, time, math
 pygame.init()
 
 import config
@@ -28,15 +28,18 @@ def set_level(pos):
     level, _ = levels[loc]
     level.preload()
 
+def get_tile(x, y):
+  return current_level.grid[(int(player_pos['x']+x), int(player_pos['y']+y))]
+
 tick = time.time()
 lastTick = tick
 running = True
 
 set_level((0, 0))
 
-playerPos = {
-  'x': current_level.spawn.location[0] * SPRITE_SIZE * 4,
-  'y': current_level.spawn.location[1] * SPRITE_SIZE * 4,
+player_pos = {
+  'x': current_level.spawn.location[0],
+  'y': current_level.spawn.location[1],
 }
 
 while running:
@@ -63,26 +66,50 @@ while running:
     if event.type == pygame.KEYDOWN: # assign the key if it's down
       keyPressed[event.dict['key']] = True
 
-  if(keys[pygame.K_a]):
-    playerPos['x'] -= delta * 300
+  vel_x, vel_y = 0, 0
 
-  if(keys[pygame.K_d]):
-    playerPos['x'] += delta * 300
+  if get_tile(0, 1).is_air():
+    vel_y = delta * 10
 
-  if(keys[pygame.K_w]):
-    playerPos['y'] -= delta * 300
+  if keys[pygame.K_a]:
+    vel_x += -delta * 10
 
-  if(keys[pygame.K_s]):
-    playerPos['y'] += delta * 300
+  if keys[pygame.K_d]:
+    vel_x += delta * 10
 
-  x_off = -int(playerPos['x']) + (config.WIDTH >> 1)
-  y_off = -int(playerPos['y']) + (config.HEIGHT >> 1)
+  if keys[pygame.K_w]:
+    vel_y -= delta * 10
+
+  if keys[pygame.K_s]:
+    vel_y += delta * 10
+
+  if not get_tile(0, vel_y).is_air():
+    vel_y = min(vel_y, player_pos['y'] - int(player_pos['y']))
+  
+  # TODO implement x+y collision
+  # if not get_tile(0, vel_x).is_air():
+  #   sign = math.copysign(1, vel_x)
+  #   if vel_x > 0:
+  #     print('not air', int(player_pos['x'] - 0.5) - player_pos['x'])
+  #     vel_x = min(vel_x, int(player_pos['x'] - 0.5) - player_pos['x'])
+  #   else:
+  #     vel_x = max(vel_x, int(player_pos['x']) - player_pos['x'])
+
+  player_pos['x'] += vel_x
+  player_pos['y'] += vel_y
+
+
+  player_x = int(player_pos['x'] * SPRITE_SIZE * 4)
+  player_y = int(player_pos['y'] * SPRITE_SIZE * 4)
+
+  x_off = -player_x + (config.WIDTH >> 1)
+  y_off = -player_y + (config.HEIGHT >> 1)
  
   pygame.draw.rect(screen, (0, 0, 0), (0, 0, config.WIDTH, config.HEIGHT))
   current_level.render(screen, bg=True, mg=True, x_off=x_off, y_off=y_off)
 
-  draw_sprite(screen, PLAYER_TOP_SPRITE, int(playerPos['x']) + x_off, int(playerPos['y'] - SPRITE_SIZE * 4) + y_off)
-  draw_sprite(screen, PLAYER_BOTTOM_SPRITE, int(playerPos['x']) + x_off, int(playerPos['y']) + y_off)
+  draw_sprite(screen, PLAYER_TOP_SPRITE, player_x + x_off, player_y - SPRITE_SIZE * 4 + y_off)
+  draw_sprite(screen, PLAYER_BOTTOM_SPRITE, player_x + x_off, player_y + y_off)
   # tickGame(delta, keys)
   # drawGame()
 
