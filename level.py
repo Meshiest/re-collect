@@ -23,6 +23,9 @@ class Tile:
   STICKY = False
   SPRITE = cut_sheet(SPRITES, 7, 0)
 
+  def is_air(self):
+    return self.MASK & AIR
+
   def sprite(self):
     return self.SPRITE
 
@@ -206,9 +209,9 @@ class ShroomType(IntEnum):
 class ShroomTile(Tile):
   SYMBOL = '1'
   MASK = AIR | ITEM | POKE | STEP
-  JUMP_SPRITE = cut_sheet(SPRITES, 0, 2)
-  GRAVITY_SPRITE = cut_sheet(SPRITES, 1, 2)
-  BLINK_SPRITE = cut_sheet(SPRITES, 2, 2)
+  JUMP_SPRITE = cut_sheet(SPRITES, 0, 3)
+  GRAVITY_SPRITE = cut_sheet(SPRITES, 1, 3)
+  BLINK_SPRITE = cut_sheet(SPRITES, 2, 3)
   MG = True
   STICKY = True
 
@@ -377,23 +380,31 @@ class Level:
       for y in range(self.height):
         tile = self.grid[(x, y)]
         # TODO check if a tile has "Sticky" prop and rotate to stick to the nearest wall
-        isAir = tile.MASK & AIR
+        isAir = tile.is_air()
+        sprite = tile.sprite()
 
+        if tile.STICKY:
+          if not self.grid[(x, y-1)].is_air():
+            sprite = pygame.transform.rotate(sprite, 180)
+          if not self.grid[(x+1, y)].is_air():
+            sprite = pygame.transform.rotate(sprite, 90)
+          if not self.grid[(x-1, y)].is_air():
+            sprite = pygame.transform.rotate(sprite, 270)
 
         if isAir:
           draw_sprite(bg, AirTile.SPRITE, x, y, scale=True)
 
         if tile.BG:
-          draw_sprite(bg, tile.sprite(), x, y, scale=True)
+          draw_sprite(bg, sprite, x, y, scale=True)
 
         if isAir and not self.grid[(x, y+1)].MASK & AIR:
           draw_sprite(bg, GRASS_SPRITE, x, y, scale=True)
 
         if tile.MG:
-          draw_sprite(mg, tile.sprite(), x, y, scale=True)
+          draw_sprite(mg, sprite, x, y, scale=True)
 
         if tile.FG:
-          draw_sprite(fg, tile.sprite(), x, y, scale=True)
+          draw_sprite(fg, sprite, x, y, scale=True)
 
 
   # Determines the adjacent rooms based on teles inside the room
