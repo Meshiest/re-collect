@@ -1,3 +1,4 @@
 import pygame
 
 WIDTH, HEIGHT = 1280, 720
+SPRITE_SIZE = 8

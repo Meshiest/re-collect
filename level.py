@@ -7,6 +7,8 @@ STEP = 0b00001000 # Something you can trigger by stepping on
 POKE = 0b00010000 # Something you can trigger by poking
 GRID = 0b00100000 # Something you can shoot portals on
 
+from util import load_sprite
+
 # A cell in the level
 class Tile:
   MASK = 0
