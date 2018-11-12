@@ -263,17 +263,31 @@ def get_level(x, y):
 
 
 class Level:
-  def __init__(self, loc, grid, size, teles, spawn):
-    self.loc = loc
+  def __init__(self, pos, grid, size, teles, spawn):
+    self.pos = pos
     self.spawn = spawn
     self.width, self.height = size
+
+    # Tele exit positions
     self.teles = teles
+
+    # Tile grid
     self.grid = grid
+
+    # Level has generated sprites
+    self.loaded = False
 
   # Determines the adjacent rooms based on teles inside the room
   def get_neighbors(self):
-    x, y = self.loc
+    x, y = self.pos
     return list(set([(x + off_x, y + off_y) for label, (off_x, off_y) in self.teles]))
+
+  def preload(self):
+    if self.loaded:
+      return
+
+    # TODO generate  screens for the level
+    self.loaded = True
 
   # Prints out the room in ascii notation
   def __str__(self):
@@ -284,7 +298,7 @@ class Level:
     ])
 
   def __repr__(self):
-    return '<Room @ (%d, %d)>' % self.loc
+    return '<Room @ (%d, %d)>' % self.pos
 
 # Finds all the linked rooms
 def crawl_rooms(debug=False):
