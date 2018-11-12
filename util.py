@@ -22,8 +22,15 @@ def cut_sheet(src, x, y, size=SPRITE_SIZE):
   surface.blit(src, surface.get_rect(), (x, y, x + size, y + size))
   return surface
 
+def level_surface(width, height):
+  return pygame.Surface((width * SPRITE_SIZE, height * SPRITE_SIZE), pygame.SRCALPHA, 32).convert_alpha()
+
 # Draws a sprite on a surface at position x, y
-def draw_sprite(src, sprite, x, y, rotate=0, flip_x=False, flip_y=False, size=SPRITE_SIZE):
+def draw_sprite(src, sprite, x, y, scale=False, rotate=0, flip_x=False, flip_y=False, size=SPRITE_SIZE):
+  if scale:
+    x *= size
+    y *= size
+
   if flip_x or flip_y:
     sprite = pygame.transform.flip(sprite, flip_x, flip_y)
 

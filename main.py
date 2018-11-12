@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 
 import pygame, time
+pygame.init()
 
 import config
+screen = pygame.display.set_mode([config.WIDTH, config.HEIGHT], pygame.RESIZABLE)
 
 from level import crawl_rooms
 
-pygame.init()
 pygame.mixer.init(frequency=22050, size=-16, channels=2, buffer=512)
 
-screen = pygame.display.set_mode([config.WIDTH, config.HEIGHT], pygame.RESIZABLE)
 
 # Put loading screen stuff here
 pygame.draw.rect(screen, (255, 255, 255), (0, 0, config.WIDTH, config.HEIGHT))
@@ -45,6 +45,7 @@ while running:
   keyPressed = {}
 
   pygame.draw.rect(screen, (0, 0, 0), (0, 0, config.WIDTH, config.HEIGHT))
+  current_level.render(screen)
 
   for event in pygame.event.get():
     if event.type == pygame.QUIT:

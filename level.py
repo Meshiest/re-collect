@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import Enum, IntEnum
 
 AIR  = 0b00000001 # Something you can shoot through
 WALL = 0b00000010 # Something you cannot walk through
@@ -7,12 +7,24 @@ STEP = 0b00001000 # Something you can trigger by stepping on
 POKE = 0b00010000 # Something you can trigger by poking
 GRID = 0b00100000 # Something you can shoot portals on
 
-from util import load_sprite
+from util import load_sprite, cut_sheet, draw_sprite, level_surface, SPRITE_SIZE
+import pygame
+
+SPRITES = load_sprite('level_sprites.png')
+GRASS_SPRITE = cut_sheet(SPRITES, 5, 1)
 
 # A cell in the level
 class Tile:
   MASK = 0
   SYMBOL = ' '
+  BG = False
+  FG = False
+  MG = False
+  STICKY = False
+  SPRITE = cut_sheet(SPRITES, 7, 0)
+
+  def sprite(self):
+    return self.SPRITE
 
   def __str__(self):
     return self.SYMBOL
@@ -21,11 +33,14 @@ class Tile:
 class WallTile(Tile):
   MASK = WALL
   SYMBOL = ' '
+  SPRITE = cut_sheet(SPRITES, 5, 0)
+  BG = True
 
 # Nothing tile, players can walk through this
 class AirTile(Tile):
   MASK = AIR
   SYMBOL = '.'
+  BG = True
 
 # Location where player will spawn
 class SpawnTile(Tile):
@@ -36,10 +51,10 @@ class SpawnTile(Tile):
     self.location = location
 
 # Color enum
-class WallColor(Enum):
+class WallColor(IntEnum):
   RED = 0b001
-  BLUE = 0b010
-  GREEN = 0b100
+  GREEN = 0b010
+  BLUE = 0b100
   PURPLE = RED | BLUE
   CYAN = GREEN | BLUE
   YELLOW = RED | GREEN
@@ -48,10 +63,23 @@ class WallColor(Enum):
 class ColorWallTile(Tile):
   MASK = WALL
   SYMBOL = 'W'
+  RED_SPRITE = cut_sheet(SPRITES, 0, 0)
+  GREEN_SPRITE = cut_sheet(SPRITES, 1, 0)
+  BLUE_SPRITE = cut_sheet(SPRITES, 2, 0)
+  MG = True
 
   def __init__(self, color):
     if not isinstance(color, WallColor): raise Exception('Invalid Wall Color')
     self.color = color
+
+  def sprite(self):
+    if self.color & WallColor.RED:
+      return self.RED_SPRITE
+    elif self.color & WallColor.GREEN:
+      return self.GREEN_SPRITE
+    elif self.color & WallColor.BLUE:
+      return self.BLUE_SPRITE
+    return self.RED_SPRITE
 
   def __str__(self):
     return {
@@ -67,10 +95,27 @@ class ColorWallTile(Tile):
 class ColorButtonTile(Tile):
   SYMBOL = 'w'
   MASK = AIR | STEP | POKE
+  RED_SPRITE = cut_sheet(SPRITES, 0, 1)
+  RED_PRESSED_SPRITE = cut_sheet(SPRITES, 0, 2)
+  GREEN_SPRITE = cut_sheet(SPRITES, 1, 1)
+  GREEN_PRESSED_SPRITE = cut_sheet(SPRITES, 1, 2)
+  BLUE_SPRITE = cut_sheet(SPRITES, 2, 1)
+  BLUE_PRESSED_SPRITE = cut_sheet(SPRITES, 2, 2)
+  MG = True
+  STICKY = True
 
   def __init__(self, color):
     if not isinstance(color, WallColor): raise Exception('Invalid Button Color')
     self.color = color
+
+  def sprite(self, pressed=False):
+    if self.color & WallColor.RED:
+      return pressed and self.RED_PRESSED_SPRITE or self.RED_SPRITE
+    elif self.color & WallColor.GREEN:
+      return pressed and self.GREEN_PRESSED_SPRITE or self.GREEN_SPRITE
+    elif self.color & WallColor.BLUE:
+      return pressed and self.BLUE_PRESSED_SPRITE or self.BLUE_SPRITE
+    return pressed and self.RED_PRESSED_SPRITE or self.RED_SPRITE
 
   def __str__(self):
     return {
@@ -86,6 +131,7 @@ class ColorButtonTile(Tile):
 class LootTile(Tile):
   MASK = AIR | STEP | ITEM | POKE
   SYMBOL = '$'
+  MG = True
 
 # Place where players teleport to from other rooms
 class TeleExitTile(Tile):
@@ -108,10 +154,23 @@ class TeleExitTile(Tile):
 class TeleEntranceTile(Tile):
   MASK = AIR | STEP
   SYMBOL = '*'
+  SPRITE_RIGHT = cut_sheet(SPRITES, 0, 4)
+  SPRITE_LEFT = pygame.transform.flip(SPRITE_RIGHT, True, False)
+  SPRITE_DOWN = pygame.transform.rotate(SPRITE_RIGHT, 90)
+  SPRITE_UP = pygame.transform.flip(SPRITE_DOWN, False, True)
+  FG = True
 
   def __init__(self, label, direction):
     self.label = label
     self.direction = direction
+
+  def sprite(self):
+    return {
+      (1, 0): self.SPRITE_RIGHT,
+      (-1, 0): self.SPRITE_LEFT,
+      (0, 1): self.SPRITE_DOWN,
+      (0, -1): self.SPRITE_UP,
+    }[self.direction]
 
   def __str__(self):
     return self.label
@@ -120,19 +179,25 @@ class TeleEntranceTile(Tile):
 class PortalClearTile(Tile):
   SYMBOL = 'X'
   MASK = AIR | STEP
+  SPRITE = cut_sheet(SPRITES, 4, 0)
+  FG = True
 
 # A spot where players can shoot portals
 class GridTile(Tile):
   SYMBOL = '#'
   MASK = WALL | GRID
+  SPRITE = cut_sheet(SPRITES, 6, 0)
+  BG = True
 
 # A fence
 class FenceTile(Tile):
   SYMBOL = '-'
   MASK = WALL | AIR
+  SPRITE = cut_sheet(SPRITES, 3, 0)
+  FG = True
 
 # Shroom ability enum
-class ShroomType(Enum):
+class ShroomType(IntEnum):
   JUMP = 0b001
   BLINK = 0b010
   GRAVITY = 0b100
@@ -141,10 +206,24 @@ class ShroomType(Enum):
 class ShroomTile(Tile):
   SYMBOL = '1'
   MASK = AIR | ITEM | POKE | STEP
+  JUMP_SPRITE = cut_sheet(SPRITES, 0, 2)
+  GRAVITY_SPRITE = cut_sheet(SPRITES, 1, 2)
+  BLINK_SPRITE = cut_sheet(SPRITES, 2, 2)
+  MG = True
+  STICKY = True
 
   def __init__(self, type):
     if not isinstance(type, ShroomType): raise Exception('Invalid Shroom Type')
     self.type = type
+
+  def sprite(self):
+    if self.type & ShroomType.JUMP:
+      return self.JUMP_SPRITE
+    elif self.type & ShroomType.GRAVITY:
+      return self.GRAVITY_SPRITE
+    elif self.type & ShroomType.BLINK:
+      return self.BLINK_SPRITE
+    return self.JUMP_SPRITE
 
   def __str__(self):
     return str(self.type.value)
@@ -263,7 +342,6 @@ def get_level(x, y):
   (grid, (width, height), teles, spawn) = read_level(x, y)
   return Level((x, y), grid, (width, height), teles, spawn)
 
-
 class Level:
   def __init__(self, pos, grid, size, teles, spawn):
     self.pos = pos
@@ -279,16 +357,61 @@ class Level:
     # Level has generated sprites
     self.loaded = False
 
+    # Background sprite
+    self.bg_sprite = None
+    # Middleground sprite (Interactivity)
+    self.mg_sprite = None
+    # Foreground sprite
+    self.fg_sprite = None
+
+  def update_sprite(self):
+    if not self.bg_sprite:
+      bg = self.bg_sprite = level_surface(self.width, self.height)
+
+    mg = self.mg_sprite = level_surface(self.width, self.height)
+
+    if not self.fg_sprite:
+      fg = self.fg_sprite = level_surface(self.width, self.height)
+
+    for x in range(self.width):
+      for y in range(self.height):
+        tile = self.grid[(x, y)]
+        # TODO check if a tile has "Sticky" prop and rotate to stick to the nearest wall
+        isAir = tile.MASK & AIR
+
+
+        if isAir:
+          draw_sprite(bg, AirTile.SPRITE, x, y, scale=True)
+
+        if tile.BG:
+          draw_sprite(bg, tile.sprite(), x, y, scale=True)
+
+        if isAir and not self.grid[(x, y+1)].MASK & AIR:
+          draw_sprite(bg, GRASS_SPRITE, x, y, scale=True)
+
+        if tile.MG:
+          draw_sprite(mg, tile.sprite(), x, y, scale=True)
+
+        if tile.FG:
+          draw_sprite(fg, tile.sprite(), x, y, scale=True)
+
+
   # Determines the adjacent rooms based on teles inside the room
   def get_neighbors(self):
     x, y = self.pos
     return list(set([(x + off_x, y + off_y) for label, (off_x, off_y) in self.teles]))
 
+  def render(self, screen):
+    sprites = [self.bg_sprite, self.mg_sprite, self.fg_sprite]
+    for sprite in sprites:
+      sprite = pygame.transform.scale(sprite, (sprite.get_width() * 3, sprite.get_height() * 3))
+      screen.blit(sprite, sprite.get_rect())
+
   def preload(self):
     if self.loaded:
       return
 
-    # TODO generate  screens for the level
+    self.update_sprite()
     self.loaded = True
 
   # Prints out the room in ascii notation
