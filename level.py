@@ -290,11 +290,11 @@ def parse(file):
 
       # Portal clear
       elif char == 'X':
-        spawn = level_map[(x, y)] = PortalClearTile()
+        level_map[(x, y)] = PortalClearTile()
       
       # Loot
       elif char == '$':
-        spawn = level_map[(x, y)] = LootTile()
+        level_map[(x, y)] = LootTile()
       
       # Buttons
       elif char in 'rgbpcy':
@@ -412,11 +412,21 @@ class Level:
     x, y = self.pos
     return list(set([(x + off_x, y + off_y) for label, (off_x, off_y) in self.teles]))
 
-  def render(self, screen):
-    sprites = [self.bg_sprite, self.mg_sprite, self.fg_sprite]
-    for sprite in sprites:
-      sprite = pygame.transform.scale(sprite, (sprite.get_width() * 3, sprite.get_height() * 3))
-      screen.blit(sprite, sprite.get_rect())
+  def render(self, screen, bg=False, mg=False, fg=False, x_off=0, y_off=0):
+    def render_sprite(sprite):
+      sprite = pygame.transform.scale(sprite, (sprite.get_width() * 4, sprite.get_height() * 4))
+      x, y, width, height = sprite.get_rect()
+      screen.blit(sprite, (x + x_off, y + y_off, width, height))
+
+    if bg:
+      render_sprite(self.bg_sprite)
+
+    if mg:
+      render_sprite(self.mg_sprite)
+
+    if fg:
+      render_sprite(self.fg_sprite)
+
 
   def preload(self):
     if self.loaded:

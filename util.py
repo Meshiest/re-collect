@@ -15,11 +15,13 @@ def load_sprite(path):
   return pygame.image.load(os.path.abspath(path)).convert_alpha()
 
 # Cut a sprite out of a sheet
-def cut_sheet(src, x, y, size=SPRITE_SIZE):
+def cut_sheet(src, x, y, size=SPRITE_SIZE, scale=1):
   x *= size
   y *= size
   surface = pygame.Surface((size, size), pygame.SRCALPHA, 32).convert_alpha()
   surface.blit(src, surface.get_rect(), (x, y, x + size, y + size))
+  if not scale == 1:
+    surface = pygame.transform.scale(surface, (surface.get_width() * scale, surface.get_height() * scale))
   return surface
 
 def level_surface(width, height):
