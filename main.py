@@ -103,8 +103,9 @@ while running:
   if keys[pygame.K_d]:
     vel_x = delta * config.WALK_SPEED
 
-  # if keys[pygame.K_SPACE] and vel_y == 0:
-  # vel_y -= config.JUMP_VELOCITY
+  # Jumping is floating atm
+  # if keys[pygame.K_SPACE]:
+    # vel_y = -delta * config.JUMP_VELOCITY
 
     # vel_x = vel_x - vel_x * config.FRICTION * delta
 
@@ -147,12 +148,12 @@ while running:
         current_level.update_sprite()
     elif tile.TELE:
       # Coord of tele entrance
-      pos = (int(player_pos['x']), int(player_pos['y']))
+      x, y = tile.direction
+      pos = (int(player_pos['x'] - x + 0.5), int(player_pos['y'] - y + 0.5))
       # Index of tele entrance
       index = current_level.teles[(tile.label, tile.direction)].index(pos)
 
       curr_x, curr_y = current_pos
-      x, y = tile.direction
       # with the coord of the next level, get the next level
       next_level, _ = levels[(curr_x + x, curr_y + y)]
       # Find the complement tele exit
