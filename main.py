@@ -83,17 +83,25 @@ while running:
   if keys[pygame.K_s]:
     vel_y += delta * 10
 
-  if not get_tile(0, vel_y).is_air():
+  if not get_tile(0, vel_y).is_air(): # Check if we're falling into a block
     vel_y = min(vel_y, player_pos['y'] - int(player_pos['y']))
   
-  # TODO implement x+y collision
-  # if not get_tile(0, vel_x).is_air():
-  #   sign = math.copysign(1, vel_x)
-  #   if vel_x > 0:
-  #     print('not air', int(player_pos['x'] - 0.5) - player_pos['x'])
-  #     vel_x = min(vel_x, int(player_pos['x'] - 0.5) - player_pos['x'])
-  #   else:
-  #     vel_x = max(vel_x, int(player_pos['x']) - player_pos['x'])
+  if abs(vel_x) > 0: # Check if we're moving left/right
+    # Moving right
+    if vel_x > 0 and not get_tile(1, 0).is_air():
+      # Check if we would move into the block
+      if player_pos['x'] + vel_x > int(player_pos['x'] + 0.5):
+        # Just don't move into the block
+        player_pos['x'] = int(player_pos['x'])
+        vel_x = 0
+
+    # Moving left
+    elif not get_tile(-1, 0).is_air():
+      # Check if we would move into the block
+      if player_pos['x'] - 1 + vel_x < int(player_pos['x'] - 1):
+        # Just don't move into the block
+        player_pos['x'] = int(player_pos['x'])
+        vel_x = 0
 
   player_pos['x'] += vel_x
   player_pos['y'] += vel_y
