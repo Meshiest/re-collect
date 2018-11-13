@@ -1,0 +1,13 @@
+Test level for checking collision
+
+LEVEL:
+### ###  ## ### 
+ #  #   ##   #
+ #  ##   ##  #
+ #  ### ##   #
+
+.....>a
+.....>a
+.....>a
+vvv
+aaa

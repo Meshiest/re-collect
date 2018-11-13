@@ -86,12 +86,12 @@ while running:
 
   vel_y = max(min(0.3, vel_y), -0.3)
 
-  if not can_collide(0.5, -1 + vel_y): # Check if we're falling into a block
+  if not can_collide(0.5, -1 + vel_y) and not can_collide(-1, -1 + vel_y): # Check if we're falling into a block
     if player_pos['y'] + vel_y < int(player_pos['y']):
       player_pos['y'] = int(player_pos['y'])
       vel_y = 0
 
-  if not can_collide(0.5, 1 + vel_y): # Check if we're falling into a block
+  if not can_collide(0.5, 1 + vel_y) and not can_collide(-1, 1 + vel_y): # Check if we're falling into a block
     if player_pos['y'] + vel_y > int(player_pos['y']):
       player_pos['y'] = int(player_pos['y']) + 1
       vel_y = 0

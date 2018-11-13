@@ -167,8 +167,8 @@ class TeleEntranceTile(Tile):
   SYMBOL = '*'
   SPRITE_RIGHT = cut_sheet(SPRITES, 0, 4)
   SPRITE_LEFT = pygame.transform.flip(SPRITE_RIGHT, True, False)
-  SPRITE_DOWN = pygame.transform.rotate(SPRITE_RIGHT, 90)
-  SPRITE_UP = pygame.transform.flip(SPRITE_DOWN, False, True)
+  SPRITE_UP = pygame.transform.rotate(SPRITE_RIGHT, 90)
+  SPRITE_DOWN = pygame.transform.flip(SPRITE_UP, False, True)
   FG = True
 
   def __init__(self, label, direction):
