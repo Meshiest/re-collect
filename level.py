@@ -8,7 +8,7 @@ POKE = 0b00010000 # Something you can trigger by poking
 GRID = 0b00100000 # Something you can shoot portals on
 
 from util import load_sprite, cut_sheet, draw_sprite, level_surface, SPRITE_SIZE
-import pygame
+import pygame, time, config
 
 SPRITES = load_sprite('level_sprites.png')
 GRASS_SPRITE = cut_sheet(SPRITES, 5, 1)
@@ -20,6 +20,7 @@ class Tile:
   BG = False
   FG = False
   MG = False
+  COLORED = False
   STICKY = False
   SPRITE = cut_sheet(SPRITES, 7, 0)
 
@@ -69,6 +70,7 @@ class ColorWallTile(Tile):
   RED_SPRITE = cut_sheet(SPRITES, 0, 0)
   GREEN_SPRITE = cut_sheet(SPRITES, 1, 0)
   BLUE_SPRITE = cut_sheet(SPRITES, 2, 0)
+  COLORED = True
   MG = True
 
   def __init__(self, color):
@@ -104,6 +106,7 @@ class ColorButtonTile(Tile):
   GREEN_PRESSED_SPRITE = cut_sheet(SPRITES, 1, 2)
   BLUE_SPRITE = cut_sheet(SPRITES, 2, 1)
   BLUE_PRESSED_SPRITE = cut_sheet(SPRITES, 2, 2)
+  COLORED = True
   MG = True
   STICKY = True
 
@@ -360,6 +363,10 @@ class Level:
     # Level has generated sprites
     self.loaded = False
 
+    # Timers for colored buttons
+    self.timers = {}
+    self.last_render = 0
+
     # Background sprite
     self.bg_sprite = None
     # Middleground sprite (Interactivity)
@@ -367,8 +374,14 @@ class Level:
     # Foreground sprite
     self.fg_sprite = None
 
+  def start_timer(self, timer):
+    self.timers[timer] = time.time() + config.TIMER_DURATION
+
   def update_sprite(self):
+    firstRender = False
+    
     if not self.bg_sprite:
+      firstRender = True
       bg = self.bg_sprite = level_surface(self.width, self.height)
 
     mg = self.mg_sprite = level_surface(self.width, self.height)
@@ -382,6 +395,13 @@ class Level:
         # TODO check if a tile has "Sticky" prop and rotate to stick to the nearest wall
         isAir = tile.is_air()
         sprite = tile.sprite()
+        timerOn = False
+
+        if tile.COLORED:
+          timerOn = self.timers.get(tile.color.value, 0) > self.last_render
+
+          if tile.MASK & STEP:
+            sprite = tile.sprite(timerOn)
 
         if tile.STICKY:
           if not self.grid[(x, y-1)].is_air():
@@ -391,20 +411,25 @@ class Level:
           if not self.grid[(x-1, y)].is_air():
             sprite = pygame.transform.rotate(sprite, 270)
 
-        if isAir:
-          draw_sprite(bg, AirTile.SPRITE, x, y, scale=True)
+        # Avoid re-rendering bg
+        if firstRender:
+          if isAir or tile.MG and tile.MASK & WALL:
+            draw_sprite(bg, AirTile.SPRITE, x, y, scale=True)
 
-        if tile.BG:
-          draw_sprite(bg, sprite, x, y, scale=True)
+          if tile.BG:
+            draw_sprite(bg, sprite, x, y, scale=True)
 
-        if isAir and not self.grid[(x, y+1)].MASK & AIR:
-          draw_sprite(bg, GRASS_SPRITE, x, y, scale=True)
+          # Draw grass if current tile is air and below is not air
+          if isAir and not self.grid[(x, y+1)].MASK & AIR:
+            draw_sprite(bg, GRASS_SPRITE, x, y, scale=True)
 
-        if tile.MG:
+          if tile.FG:
+            draw_sprite(fg, sprite, x, y, scale=True)
+
+        # render if there's a timer on and it's not a wall, or there's not timer on
+        if tile.MG and (not timerOn or (tile.COLORED and tile.MASK & AIR)):
           draw_sprite(mg, sprite, x, y, scale=True)
 
-        if tile.FG:
-          draw_sprite(fg, sprite, x, y, scale=True)
 
 
   # Determines the adjacent rooms based on teles inside the room
@@ -413,6 +438,9 @@ class Level:
     return list(set([(x + off_x, y + off_y) for label, (off_x, off_y) in self.teles]))
 
   def render(self, screen, bg=False, mg=False, fg=False, x_off=0, y_off=0):
+    last_render = self.last_render
+    now = self.last_render = time.time()
+
     def render_sprite(sprite):
       sprite = pygame.transform.scale(sprite, (sprite.get_width() * 4, sprite.get_height() * 4))
       x, y, width, height = sprite.get_rect()
@@ -422,6 +450,13 @@ class Level:
       render_sprite(self.bg_sprite)
 
     if mg:
+      # Check if any of our timers expired to update the frame
+      for t in self.timers:
+        timer = self.timers[t]
+        if timer > last_render and timer < now:
+          self.update_sprite()
+          break
+
       render_sprite(self.mg_sprite)
 
     if fg:

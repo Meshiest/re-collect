@@ -6,7 +6,7 @@ pygame.init()
 import config
 screen = pygame.display.set_mode([config.WIDTH, config.HEIGHT], pygame.RESIZABLE)
 
-from level import crawl_rooms, SPRITES
+import level
 from util import SPRITE_SIZE, load_sprite, cut_sheet, draw_sprite
 
 pygame.mixer.init(frequency=22050, size=-16, channels=2, buffer=512)
@@ -15,10 +15,10 @@ pygame.mixer.init(frequency=22050, size=-16, channels=2, buffer=512)
 pygame.draw.rect(screen, (255, 255, 255), (0, 0, config.WIDTH, config.HEIGHT))
 pygame.display.update()
 
-PLAYER_TOP_SPRITE = cut_sheet(SPRITES, 0, 6, scale=4)
-PLAYER_BOTTOM_SPRITE = cut_sheet(SPRITES, 0, 7, scale=4)
+PLAYER_TOP_SPRITE = cut_sheet(level.SPRITES, 0, 6, scale=4)
+PLAYER_BOTTOM_SPRITE = cut_sheet(level.SPRITES, 0, 7, scale=4)
 
-levels = crawl_rooms()
+levels = level.crawl_rooms()
 
 def set_level(pos):
   global current_level, neighbors
@@ -31,6 +31,12 @@ def set_level(pos):
 def get_tile(x, y):
   return current_level.grid[(int(player_pos['x']+x), int(player_pos['y']+y))]
 
+def get_is_air(x, y):
+  tile = get_tile(x, y)
+  if not tile.COLORED:
+    return tile.is_air()
+  return tile.is_air() or current_level.timers.get(tile.color.value, 0) > current_level.last_render
+
 tick = time.time()
 lastTick = tick
 running = True
@@ -40,6 +46,8 @@ set_level((0, 0))
 player_pos = {
   'x': current_level.spawn.location[0],
   'y': current_level.spawn.location[1],
+  'vx': 0,
+  'vy': 0,
 }
 
 while running:
@@ -66,29 +74,36 @@ while running:
     if event.type == pygame.KEYDOWN: # assign the key if it's down
       keyPressed[event.dict['key']] = True
 
-  vel_x, vel_y = 0, 0
+  vel_x, vel_y = player_pos['vx'], player_pos['vy']
 
-  if get_tile(0, 1).is_air():
-    vel_y = delta * 10
+  # if keys[pygame.K_w] and vel_y == 0:
+  #   vel_y = -0.2
 
-  if keys[pygame.K_a]:
-    vel_x += -delta * 10
+  if get_is_air(0, 1):
+    vel_y += delta * config.GRAVITY
+    # vel_y = 0.1
 
-  if keys[pygame.K_d]:
-    vel_x += delta * 10
+  vel_y = min(0.15, vel_y)
 
-  if keys[pygame.K_w]:
-    vel_y -= delta * 10
 
-  if keys[pygame.K_s]:
-    vel_y += delta * 10
+  if not get_is_air(0, 1 + vel_y): # Check if we're falling into a block
+    if player_pos['y'] + vel_y > int(player_pos['y']):
+      player_pos['y'] = int(player_pos['y']) + 1
+      vel_y = 0
+    else:
+      # Severely limit air control
+      if keys[pygame.K_a]:
+        vel_x -= delta * config.WALK_SPEED
 
-  if not get_tile(0, vel_y).is_air(): # Check if we're falling into a block
-    vel_y = min(vel_y, player_pos['y'] - int(player_pos['y']))
+      if keys[pygame.K_d]:
+        vel_x += delta * config.WALK_SPEED
+
+      vel_x = vel_x - vel_x * config.FRICTION * delta
+
   
   if abs(vel_x) > 0: # Check if we're moving left/right
     # Moving right
-    if vel_x > 0 and not get_tile(1, 0).is_air():
+    if vel_x > 0 and not get_is_air(1, 0):
       # Check if we would move into the block
       if player_pos['x'] + vel_x > int(player_pos['x'] + 0.5):
         # Just don't move into the block
@@ -96,7 +111,7 @@ while running:
         vel_x = 0
 
     # Moving left
-    elif not get_tile(-1, 0).is_air():
+    elif not get_is_air(-1, 0):
       # Check if we would move into the block
       if player_pos['x'] - 1 + vel_x < int(player_pos['x'] - 1):
         # Just don't move into the block
@@ -106,12 +121,21 @@ while running:
   player_pos['x'] += vel_x
   player_pos['y'] += vel_y
 
+  player_pos['vx'], player_pos['vy'] = vel_x, vel_y
 
   player_x = int(player_pos['x'] * SPRITE_SIZE * 4)
   player_y = int(player_pos['y'] * SPRITE_SIZE * 4)
 
   x_off = -player_x + (config.WIDTH >> 1)
   y_off = -player_y + (config.HEIGHT >> 1)
+
+  if get_tile(0, 0).MASK & level.STEP:
+    tile = get_tile(0, 0)
+    if tile.COLORED:
+      color = tile.color.value
+      if current_level.timers.get(color, 0) < tick + config.TIMER_DURATION - 1:
+        current_level.start_timer(color)
+        current_level.update_sprite()
  
   pygame.draw.rect(screen, (0, 0, 0), (0, 0, config.WIDTH, config.HEIGHT))
   current_level.render(screen, bg=True, mg=True, x_off=x_off, y_off=y_off)
