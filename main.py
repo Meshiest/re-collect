@@ -21,7 +21,8 @@ PLAYER_BOTTOM_SPRITE = cut_sheet(level.SPRITES, 0, 7, scale=4)
 levels = level.crawl_rooms()
 
 def set_level(pos):
-  global current_level, neighbors
+  global current_level, neighbors, current_pos
+  current_pos = pos
   current_level, neighbors = levels[pos] # Start in 0, 0
 
   for loc in [pos] + neighbors:
@@ -31,11 +32,11 @@ def set_level(pos):
 def get_tile(x, y):
   return current_level.grid[(int(player_pos['x']+x), int(player_pos['y']+y))]
 
-def get_is_air(x, y):
+def can_collide(x, y):
   tile = get_tile(x, y)
   if not tile.COLORED:
-    return tile.is_air()
-  return tile.is_air() or current_level.timers.get(tile.color.value, 0) > current_level.last_render
+    return not tile.is_wall()
+  return not tile.is_wall() or current_level.timers.get(tile.color.value, 0) > current_level.last_render
 
 tick = time.time()
 lastTick = tick
@@ -79,38 +80,38 @@ while running:
   # if keys[pygame.K_w] and vel_y == 0:
   #   vel_y = -0.2
 
-  if get_is_air(0, 1):
+  if can_collide(0, 1):
     vel_y += delta * config.GRAVITY
     # vel_y = 0.1
 
   vel_y = max(min(0.3, vel_y), -0.3)
 
-  if not get_is_air(0.5, -1 + vel_y): # Check if we're falling into a block
+  if not can_collide(0.5, -1 + vel_y): # Check if we're falling into a block
     if player_pos['y'] + vel_y < int(player_pos['y']):
       player_pos['y'] = int(player_pos['y'])
       vel_y = 0
 
-  if not get_is_air(0.5, 1 + vel_y): # Check if we're falling into a block
+  if not can_collide(0.5, 1 + vel_y): # Check if we're falling into a block
     if player_pos['y'] + vel_y > int(player_pos['y']):
       player_pos['y'] = int(player_pos['y']) + 1
       vel_y = 0
 
-    # Severely limit air control
-    if keys[pygame.K_a]:
-      vel_x -= delta * config.WALK_SPEED
+  # Severely limit air control
+  if keys[pygame.K_a]:
+    vel_x = -delta * config.WALK_SPEED
 
-    if keys[pygame.K_d]:
-      vel_x += delta * config.WALK_SPEED
+  if keys[pygame.K_d]:
+    vel_x = delta * config.WALK_SPEED
 
-    if keys[pygame.K_SPACE] and vel_y == 0:
-      vel_y -= config.JUMP_VELOCITY
+  # if keys[pygame.K_SPACE] and vel_y == 0:
+  # vel_y -= config.JUMP_VELOCITY
 
-    vel_x = vel_x - vel_x * config.FRICTION * delta
+    # vel_x = vel_x - vel_x * config.FRICTION * delta
 
   
   if abs(vel_x) > 0: # Check if we're moving left/right
     # Moving right
-    if vel_x > 0 and not get_is_air(1, 0):
+    if vel_x > 0 and not can_collide(1, 0):
       # Check if we would move into the block
       if player_pos['x'] + vel_x > int(player_pos['x'] + 0.5):
         # Just don't move into the block
@@ -118,7 +119,7 @@ while running:
         vel_x = 0
 
     # Moving left
-    elif not get_is_air(-1, 0):
+    elif not can_collide(-1, 0):
       # Check if we would move into the block
       if player_pos['x'] - 1 + vel_x < int(player_pos['x'] - 1):
         # Just don't move into the block
@@ -127,6 +128,7 @@ while running:
 
   player_pos['x'] += vel_x
   player_pos['y'] += vel_y
+  vel_x = 0
 
   player_pos['vx'], player_pos['vy'] = vel_x, vel_y
 
@@ -143,6 +145,22 @@ while running:
       if current_level.timers.get(color, 0) < tick + config.TIMER_DURATION - 1:
         current_level.start_timer(color)
         current_level.update_sprite()
+    elif tile.TELE:
+      # Coord of tele entrance
+      pos = (int(player_pos['x']), int(player_pos['y']))
+      # Index of tele entrance
+      index = current_level.teles[(tile.label, tile.direction)].index(pos)
+
+      curr_x, curr_y = current_pos
+      x, y = tile.direction
+      # with the coord of the next level, get the next level
+      next_level, _ = levels[(curr_x + x, curr_y + y)]
+      # Find the complement tele exit
+      dest_pos = next_level.teles[(tile.label, (-x, -y))][index]
+
+      # Update player position and level
+      set_level((curr_x + x, curr_y + y))
+      player_pos['x'], player_pos['y'] = dest_pos
  
   pygame.draw.rect(screen, (0, 0, 0), (0, 0, config.WIDTH, config.HEIGHT))
   current_level.render(screen, bg=True, mg=True, x_off=x_off, y_off=y_off)

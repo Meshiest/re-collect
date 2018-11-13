@@ -28,6 +28,9 @@ class Tile:
   def is_air(self):
     return self.MASK & AIR
 
+  def is_wall(self):
+    return self.MASK & WALL
+
   def sprite(self):
     return self.SPRITE
 
@@ -406,12 +409,14 @@ class Level:
             sprite = tile.sprite(timerOn)
 
         if tile.STICKY:
-          if not self.grid[(x, y-1)].is_air():
-            sprite = pygame.transform.rotate(sprite, 180)
-          if not self.grid[(x+1, y)].is_air():
+          if not self.grid[(x, y+1)].is_air():
+            pass
+          elif not self.grid[(x+1, y)].is_air():
             sprite = pygame.transform.rotate(sprite, 90)
-          if not self.grid[(x-1, y)].is_air():
+          elif not self.grid[(x-1, y)].is_air():
             sprite = pygame.transform.rotate(sprite, 270)
+          elif not self.grid[(x, y-1)].is_air():
+            sprite = pygame.transform.rotate(sprite, 180)
 
         # Avoid re-rendering bg
         if firstRender:
