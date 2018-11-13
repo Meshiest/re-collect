@@ -1,13 +1,12 @@
-Test level for checking collision
-
+Test level for checking collisions
 LEVEL:
-### ###  ## ### 
- #  #   ##   #
- #  ##   ##  #
- #  ### ##   #
+RRR GGG  BB --- 
+ R  G   BB   -
+ R  GG   BB  -
+ R  GGG BB   -
 
-.....>a
-.....>a
-.....>a
+......1.2.3..X...>a
+.............X...>a
+......r.g.b..X...>a
 vvv
 aaa
