@@ -83,22 +83,29 @@ while running:
     vel_y += delta * config.GRAVITY
     # vel_y = 0.1
 
-  vel_y = min(0.15, vel_y)
+  vel_y = max(min(0.3, vel_y), -0.3)
 
+  if not get_is_air(0.5, -1 + vel_y): # Check if we're falling into a block
+    if player_pos['y'] + vel_y < int(player_pos['y']):
+      player_pos['y'] = int(player_pos['y'])
+      vel_y = 0
 
-  if not get_is_air(0, 1 + vel_y): # Check if we're falling into a block
+  if not get_is_air(0.5, 1 + vel_y): # Check if we're falling into a block
     if player_pos['y'] + vel_y > int(player_pos['y']):
       player_pos['y'] = int(player_pos['y']) + 1
       vel_y = 0
-    else:
-      # Severely limit air control
-      if keys[pygame.K_a]:
-        vel_x -= delta * config.WALK_SPEED
 
-      if keys[pygame.K_d]:
-        vel_x += delta * config.WALK_SPEED
+    # Severely limit air control
+    if keys[pygame.K_a]:
+      vel_x -= delta * config.WALK_SPEED
 
-      vel_x = vel_x - vel_x * config.FRICTION * delta
+    if keys[pygame.K_d]:
+      vel_x += delta * config.WALK_SPEED
+
+    if keys[pygame.K_SPACE] and vel_y == 0:
+      vel_y -= config.JUMP_VELOCITY
+
+    vel_x = vel_x - vel_x * config.FRICTION * delta
 
   
   if abs(vel_x) > 0: # Check if we're moving left/right
@@ -129,8 +136,8 @@ while running:
   x_off = -player_x + (config.WIDTH >> 1)
   y_off = -player_y + (config.HEIGHT >> 1)
 
-  if get_tile(0, 0).MASK & level.STEP:
-    tile = get_tile(0, 0)
+  if get_tile(0.5, 0.5).MASK & level.STEP:
+    tile = get_tile(0.5, 0.5)
     if tile.COLORED:
       color = tile.color.value
       if current_level.timers.get(color, 0) < tick + config.TIMER_DURATION - 1:

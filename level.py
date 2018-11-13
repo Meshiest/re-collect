@@ -22,6 +22,7 @@ class Tile:
   MG = False
   COLORED = False
   STICKY = False
+  TELE = False
   SPRITE = cut_sheet(SPRITES, 7, 0)
 
   def is_air(self):
@@ -159,6 +160,7 @@ class TeleExitTile(Tile):
 # Walk into this to teleport to a different room
 class TeleEntranceTile(Tile):
   MASK = AIR | STEP
+  TELE = True
   SYMBOL = '*'
   SPRITE_RIGHT = cut_sheet(SPRITES, 0, 4)
   SPRITE_LEFT = pygame.transform.flip(SPRITE_RIGHT, True, False)
@@ -453,8 +455,9 @@ class Level:
       # Check if any of our timers expired to update the frame
       for t in self.timers:
         timer = self.timers[t]
-        if timer > last_render and timer < now:
+        if timer > 0 and timer < now:
           self.update_sprite()
+          self.timers[t] = 0
           break
 
       render_sprite(self.mg_sprite)
