@@ -7,7 +7,7 @@ import config
 screen = pygame.display.set_mode([config.WIDTH, config.HEIGHT], pygame.RESIZABLE)
 
 import level
-from util import SPRITE_SIZE, load_sprite, cut_sheet, draw_sprite
+from util import SPRITE_SIZE, SPRITE_SCALE, load_sprite, cut_sheet, draw_sprite
 
 pygame.mixer.init(frequency=22050, size=-16, channels=2, buffer=512)
 
@@ -15,8 +15,8 @@ pygame.mixer.init(frequency=22050, size=-16, channels=2, buffer=512)
 pygame.draw.rect(screen, (255, 255, 255), (0, 0, config.WIDTH, config.HEIGHT))
 pygame.display.update()
 
-PLAYER_TOP_SPRITE = cut_sheet(level.SPRITES, 0, 6, scale=4)
-PLAYER_BOTTOM_SPRITE = cut_sheet(level.SPRITES, 0, 7, scale=4)
+PLAYER_TOP_SPRITE = cut_sheet(level.SPRITES, 0, 6, scale=SPRITE_SCALE)
+PLAYER_BOTTOM_SPRITE = cut_sheet(level.SPRITES, 0, 7, scale=SPRITE_SCALE)
 
 levels = level.crawl_rooms()
 
@@ -133,12 +133,6 @@ while running:
 
   player_pos['vx'], player_pos['vy'] = vel_x, vel_y
 
-  player_x = int(player_pos['x'] * SPRITE_SIZE * 4)
-  player_y = int(player_pos['y'] * SPRITE_SIZE * 4)
-
-  x_off = -player_x + (config.WIDTH >> 1)
-  y_off = -player_y + (config.HEIGHT >> 1)
-
   if get_tile(0.5, 0.5).MASK & level.STEP:
     tile = get_tile(0.5, 0.5)
     if tile.COLORED:
@@ -162,11 +156,17 @@ while running:
       # Update player position and level
       set_level((curr_x + x, curr_y + y))
       player_pos['x'], player_pos['y'] = dest_pos
+  
+  player_x = int(player_pos['x'] * SPRITE_SIZE * SPRITE_SCALE)
+  player_y = int(player_pos['y'] * SPRITE_SIZE * SPRITE_SCALE)
+
+  x_off = -player_x + (config.WIDTH >> 1)
+  y_off = -player_y + (config.HEIGHT >> 1)
  
   pygame.draw.rect(screen, (0, 0, 0), (0, 0, config.WIDTH, config.HEIGHT))
   current_level.render(screen, bg=True, mg=True, x_off=x_off, y_off=y_off)
 
-  draw_sprite(screen, PLAYER_TOP_SPRITE, player_x + x_off, player_y - SPRITE_SIZE * 4 + y_off)
+  draw_sprite(screen, PLAYER_TOP_SPRITE, player_x + x_off, player_y - SPRITE_SIZE * SPRITE_SCALE + y_off)
   draw_sprite(screen, PLAYER_BOTTOM_SPRITE, player_x + x_off, player_y + y_off)
   # tickGame(delta, keys)
   # drawGame()

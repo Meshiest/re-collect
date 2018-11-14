@@ -1,6 +1,6 @@
 import pygame, os
 
-from config import SPRITE_SIZE
+from config import SPRITE_SIZE, SPRITE_SCALE
 
 # Load an image from provided path
 def load_sprite(path):

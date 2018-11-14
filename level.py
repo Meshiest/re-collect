@@ -7,7 +7,7 @@ STEP = 0b00001000 # Something you can trigger by stepping on
 POKE = 0b00010000 # Something you can trigger by poking
 GRID = 0b00100000 # Something you can shoot portals on
 
-from util import load_sprite, cut_sheet, draw_sprite, level_surface, SPRITE_SIZE
+from util import load_sprite, cut_sheet, draw_sprite, level_surface
 import pygame, time, config
 
 SPRITES = load_sprite('level_sprites.png')
@@ -449,7 +449,7 @@ class Level:
     now = self.last_render = time.time()
 
     def render_sprite(sprite):
-      sprite = pygame.transform.scale(sprite, (sprite.get_width() * 4, sprite.get_height() * 4))
+      sprite = pygame.transform.scale(sprite, (sprite.get_width() * config.SPRITE_SCALE, sprite.get_height() * config.SPRITE_SCALE))
       x, y, width, height = sprite.get_rect()
       screen.blit(sprite, (x + x_off, y + y_off, width, height))
 
